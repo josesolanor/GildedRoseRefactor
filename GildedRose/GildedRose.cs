@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace csharp
 {
@@ -22,11 +23,11 @@ namespace csharp
                 "Sulfuras, Hand of Ragnaros"
             };
         }
-        private Boolean IsUnderHighestQualityValue(Item item)
+        private bool IsUnderHighestQualityValue(Item item)
         {
             return item.Quality < 50;
         }
-        private Boolean IsAboveLowestQualityValue(Item item)
+        private bool IsAboveLowestQualityValue(Item item)
         {
             return item.Quality > 0;
         }
@@ -45,6 +46,13 @@ namespace csharp
             }
         }
 
+        private void IncreaseQualityAmount(Item item, int timesToIncrease)
+        {
+            for (int i = 0; i < timesToIncrease; i++)
+            {
+                IncreaseQualityValue(item);
+            }
+        }
         private int GetBaseQuality(Item item)
         {
             return (item.SellIn >= 0) ? 1 : 2;
@@ -55,42 +63,41 @@ namespace csharp
             DecreaseQualityValue(item);
         }
 
-        private void BackstageUpdate(Item item)
+        private int BackstageUpdate(Item item, int timesToIncreaseQuality)
         {
-            if (item.SellIn < 10)
-            {
-                IncreaseQualityValue(item);
-            }
-
             if (item.SellIn < 5)
             {
-                IncreaseQualityValue(item);
+                timesToIncreaseQuality += 2;
             }
-
-            if (item.SellIn < 0)
+            else if (item.SellIn < 10)
             {
-                item.Quality = 0;
+                timesToIncreaseQuality++;
             }
+            return timesToIncreaseQuality;
         }
 
         public void IncreasingItemsUpdate(Item item)
         {
-            IncreaseQualityValue(item);
+            int timesToIncreaseQuality = 1;
             if (item.Name == "Backstage passes to a TAFKAL80ETC concert")
             {
-                BackstageUpdate(item);
+                timesToIncreaseQuality = BackstageUpdate(item, timesToIncreaseQuality);
+                if (item.SellIn < 0)
+                {
+                    item.Quality = 0;
+                    return;
+                }
             }
+            IncreaseQualityAmount(item, timesToIncreaseQuality);
         }
 
         public void UpdateQuality()
         {
-            foreach (Item item in Items)
-            {
-                if (!ItemsThatDoesntGetOlder.Contains(item.Name))
-                {
-                    item.SellIn = item.SellIn - 1;
-                }
+            var itemsThatGetOlder = Items.Where(item => !ItemsThatDoesntGetOlder.Contains(item.Name)).ToList();
 
+            itemsThatGetOlder.ForEach(item =>
+            {
+                item.SellIn--;
                 if (ItemsThatIncreaseQuality.Contains(item.Name))
                 {
                     IncreasingItemsUpdate(item);
@@ -99,7 +106,7 @@ namespace csharp
                 {
                     NormalUpdate(item);
                 }
-            }
+            });
         }
     }
 }
